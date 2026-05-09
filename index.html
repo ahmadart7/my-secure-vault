@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- منع محركات البحث من الأرشفة التزاماً بالخصوصية -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>My Secure Vault</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- مكتبات خارجية عبر CDN -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+
+    <!-- قسم المصادقة (تسجيل الدخول / إنشاء حساب) -->
+    <div id="auth-section" class="container">
+        <h2>تسجيل الدخول / التسجيل</h2>
+        <input type="email" id="email" placeholder="البريد الإلكتروني">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <div class="actions">
+            <button onclick="signIn()">تسجيل الدخول</button>
+            <button class="outline" onclick="signUp()">إنشاء حساب</button>
+        </div>
+    </div>
+
+    <!-- قسم فك التشفير (Master Password) - يظهر بعد تسجيل الدخول -->
+    <div id="unlock-section" class="container hidden">
+        <h2>فك تشفير الخزنة</h2>
+        <p class="warning">أدخل كلمة مرور التشفير (Master Password). لن يتم حفظها في أي مكان.</p>
+        <input type="password" id="master-password" placeholder="كلمة مرور التشفير">
+        <button onclick="unlockVault()">فتح الخزنة</button>
+        <button class="danger outline mt-1" onclick="signOut()">تسجيل الخروج</button>
+    </div>
+
+    <!-- قسم التطبيق الرئيسي -->
+    <div id="app-section" class="container hidden">
+        <header>
+            <h2>خزنتي السرية</h2>
+            <button class="danger" onclick="signOut()">تسجيل الخروج</button>
+        </header>
+
+        <div class="add-form">
+            <input type="text" id="site-name" placeholder="اسم الموقع (مثال: Google)">
+            <input type="text" id="site-username" placeholder="اسم المستخدم">
+            <input type="password" id="site-password" placeholder="كلمة المرور">
+            <button onclick="addEntry()">إضافة بيانات</button>
+        </div>
+
+        <input type="text" id="search-bar" placeholder="ابحث عن موقع..." onkeyup="filterCards()">
+
+        <div id="vault-grid" class="grid">
+            <!-- البطاقات ستظهر هنا عبر الجافاسكربت -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
