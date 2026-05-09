@@ -1,8 +1,8 @@
 // ==========================================
 // إعدادات SUPABASE (لقد وضعت مفاتيحك التي أرسلتها)
 // ==========================================
-const SUPABASE_URL = 'https://enmtfhfydqdpdwmtrdyq.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_oVGdtrR_S4VjIgeTkfFRgw_tLKNZWY2';
+const SUPABASE_URL = 'https://test.supabase.co';
+const SUPABASE_ANON_KEY = 'test';
 
 // ⚠️ حماية ضد انهيار الملف (التأكد من تحميل المكتبة أولاً)
 let supabase = null;
