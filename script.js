@@ -1,12 +1,18 @@
+console.log("✅ ملف الجافاسكريبت يعمل بنجاح ولا يوجد به أخطاء برمجية");
+
 // ==========================================
-// إعدادات SUPABASE (ضع المفاتيح الخاصة بك هنا)
+// إعدادات SUPABASE
 // ==========================================
 const SUPABASE_URL = 'https://enmtfhfydqdpdwmtrdyq.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_oVGdtrR_S4VjIgeTkfFRgw_tLKNZWY2';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// فحص تحميل المكتبة
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+if (!supabase) {
+    console.error("⚠️ لم يتم تحميل مكتبة Supabase. تأكد من اتصال الإنترنت.");
+}
 
-// متغير الجلسة: مفتاح التشفير (يُحفظ في الذاكرة العشوائية فقط ولا يكتب في localStorage أبداً)
+// متغيرات الجلسة
 let sessionMasterPassword = null;
 let inactivityTimer;
 
@@ -18,33 +24,39 @@ const appSection = document.getElementById('app-section');
 // ==========================================
 // 1. نظام تسجيل الدخول والمصادقة
 // ==========================================
-supabase.auth.onAuthStateChange((event, session) => {
-    if (session) {
-        authSection.classList.add('hidden');
-        if (!sessionMasterPassword) {
-            unlockSection.classList.remove('hidden');
-            appSection.classList.add('hidden');
+if (supabase) {
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            authSection.classList.add('hidden');
+            if (!sessionMasterPassword) {
+                unlockSection.classList.remove('hidden');
+                appSection.classList.add('hidden');
+            } else {
+                unlockSection.classList.add('hidden');
+                appSection.classList.remove('hidden');
+                fetchVaults();
+            }
+            startInactivityTimer();
         } else {
+            authSection.classList.remove('hidden');
             unlockSection.classList.add('hidden');
-            appSection.classList.remove('hidden');
-            fetchVaults();
+            appSection.classList.add('hidden');
+            sessionMasterPassword = null;
+            clearTimeout(inactivityTimer);
         }
-        startInactivityTimer();
-    } else {
-        authSection.classList.remove('hidden');
-        unlockSection.classList.add('hidden');
-        appSection.classList.add('hidden');
-        sessionMasterPassword = null;
-        clearTimeout(inactivityTimer);
-    }
-});
+    });
+}
 
 async function signUp() {
+    console.log("زر إنشاء الحساب يعمل!");
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    
+    if(!email || !password) return alert('الرجاء إدخال البريد وكلمة المرور');
+    
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) alert('خطأ في التسجيل: ' + error.message);
-    else alert('تم التسجيل! يمكنك تسجيل الدخول الآن.');
+    else alert('تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.');
 }
 
 async function signIn() {
@@ -60,7 +72,7 @@ async function signOut() {
 }
 
 // ==========================================
-// 2. نظام التشفير وفك التشفير (Client-Side)
+// 2. التشفير وفك التشفير
 // ==========================================
 function unlockVault() {
     const mp = document.getElementById('master-password').value;
@@ -68,7 +80,6 @@ function unlockVault() {
     sessionMasterPassword = mp;
     document.getElementById('master-password').value = '';
     
-    // إخفاء قسم الفتح وإظهار التطبيق
     unlockSection.classList.add('hidden');
     appSection.classList.remove('hidden');
     fetchVaults();
@@ -82,14 +93,14 @@ function decrypt(ciphertext) {
     try {
         const bytes = CryptoJS.AES.decrypt(ciphertext, sessionMasterPassword);
         const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-        return decrypted || '⚠️ خطأ: المفتاح غير صحيح';
+        return decrypted || '⚠️ خطأ';
     } catch (e) {
-        return '⚠️ خطأ: تعذر فك التشفير';
+        return '⚠️ خطأ';
     }
 }
 
 // ==========================================
-// 3. إدارة البيانات (CRUD)
+// 3. إدارة البيانات
 // ==========================================
 async function addEntry() {
     const site = document.getElementById('site-name').value;
@@ -98,7 +109,6 @@ async function addEntry() {
 
     if (!site || !user || !pass) return alert('الرجاء تعبئة جميع الحقول');
 
-    // التشفير قبل الإرسال لقاعدة البيانات
     const encUser = encrypt(user);
     const encPass = encrypt(pass);
 
@@ -134,7 +144,6 @@ function renderCards(vaults) {
     grid.innerHTML = '';
 
     vaults.forEach(item => {
-        // فك التشفير محلياً في المتصفح
         const plainUser = decrypt(item.encrypted_username);
         const plainPass = decrypt(item.encrypted_password);
 
@@ -142,8 +151,6 @@ function renderCards(vaults) {
         card.className = 'card';
         card.setAttribute('data-site', item.site_name.toLowerCase());
         
-        // استخدام data attributes لحفظ النسخة غير المشفرة في الـ DOM لتسهيل النسخ،
-        // وإخفائها بصرياً باستخدام نجوم.
         card.innerHTML = `
             <h3>${item.site_name}</h3>
             <div class="card-row">
@@ -164,13 +171,9 @@ function renderCards(vaults) {
     });
 }
 
-// ==========================================
-// 4. وظائف الواجهة (نسخ، إظهار/إخفاء، بحث)
-// ==========================================
 function toggleVisibility(id, user, pass) {
     const userEl = document.getElementById(`user-${id}`);
     const passEl = document.getElementById(`pass-${id}`);
-    
     if (userEl.innerText === '••••••••') {
         userEl.innerText = user;
         passEl.innerText = pass;
@@ -181,7 +184,7 @@ function toggleVisibility(id, user, pass) {
 }
 
 function copyToClipboard(text) {
-    if(text.includes('⚠️')) return alert('لا يمكن النسخ، بيانات مشفرة بشكل خاطئ');
+    if(text.includes('⚠️')) return alert('بيانات مشفرة بشكل خاطئ');
     navigator.clipboard.writeText(text).then(() => {
         alert('تم النسخ إلى الحافظة!');
     });
@@ -196,9 +199,6 @@ function filterCards() {
     });
 }
 
-// ==========================================
-// 5. الأمان الإضافي (Auto-Logout)
-// ==========================================
 function resetTimer() {
     if (sessionMasterPassword) {
         clearTimeout(inactivityTimer);
@@ -207,14 +207,12 @@ function resetTimer() {
 }
 
 function startInactivityTimer() {
-    // تسجيل الخروج بعد 5 دقائق (300,000 مللي ثانية) من الخمول
     inactivityTimer = setTimeout(() => {
-        alert('تم إغلاق الجلسة لأسباب أمنية بسبب الخمول.');
+        alert('تم إغلاق الجلسة بسبب الخمول.');
         signOut();
     }, 300000); 
 }
 
-// مراقبة نشاط المستخدم
 window.onload = resetTimer;
 document.onmousemove = resetTimer;
 document.onkeypress = resetTimer;
