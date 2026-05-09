@@ -6,11 +6,9 @@
     <meta name="robots" content="noindex, nofollow">
     <title>My Secure Vault</title>
     
-    <!-- تحميل المكتبات المضمونة -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js](https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js)"></script>
+    <!-- مكتبة التشفير فقط (مكتبة Supabase تم حذفها نهائياً لتخطي الحظر) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
-    <!-- التصميم المدمج CSS -->
     <style>
         :root { --bg-color: #121212; --surface-color: #1e1e1e; --primary-color: #00adb5; --primary-hover: #00939a; --text-main: #eeeeee; --text-muted: #999999; --danger: #ff4b4b; --border-radius: 8px; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
@@ -41,7 +39,6 @@
 </head>
 <body>
 
-    <!-- الواجهة HTML -->
     <div id="auth-section" class="container">
         <h2>تسجيل الدخول / التسجيل</h2>
         <input type="email" id="email" placeholder="البريد الإلكتروني">
@@ -73,19 +70,14 @@
         <div id="vault-grid" class="grid"></div>
     </div>
 
-    <!-- البرمجة المدمجة JS -->
     <script>
-        // ضع المفاتيح الخاصة بك هنا بدلاً من النجوم
+        // ضع المفاتيح الخاصة بك هنا
+        
         const SUPABASE_URL = 'https://enmtfhfydqdpdwmtrdyq.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_oVGdtrR_S4VjIgeTkfFRgw_tLKNZWY2';
 
-        let supabase = null;
-        if (window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } else {
-            alert("⚠️ فشل تحميل مكتبة قاعدة البيانات. تأكد من اتصال الإنترنت.");
-        }
-
+        let sessionToken = null;
+        let currentUserId = null;
         let sessionMasterPassword = null;
         let inactivityTimer;
 
@@ -93,50 +85,56 @@
         const unlockSection = document.getElementById('unlock-section');
         const appSection = document.getElementById('app-section');
 
-        if (supabase) {
-            supabase.auth.onAuthStateChange((event, session) => {
-                if (session) {
-                    authSection.classList.add('hidden');
-                    if (!sessionMasterPassword) {
-                        unlockSection.classList.remove('hidden');
-                        appSection.classList.add('hidden');
-                    } else {
-                        unlockSection.classList.add('hidden');
-                        appSection.classList.remove('hidden');
-                        fetchVaults();
-                    }
-                    startInactivityTimer();
-                } else {
-                    authSection.classList.remove('hidden');
-                    unlockSection.classList.add('hidden');
-                    appSection.classList.add('hidden');
-                    sessionMasterPassword = null;
-                    clearTimeout(inactivityTimer);
-                }
-            });
-        }
-
+        // تقنية الاتصال المباشر (Fetch) بدون مكتبات
         async function signUp() {
-            if (!supabase) return alert("خطأ: لم يتم الاتصال بقاعدة البيانات.");
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             if(!email || !password) return alert('الرجاء إدخال البريد وكلمة المرور');
-            const { error } = await supabase.auth.signUp({ email, password });
-            if (error) alert('خطأ في التسجيل: ' + error.message);
-            else alert('تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.');
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) alert('خطأ في التسجيل: ' + (data.msg || data.error_description || "تأكد من البيانات"));
+                else alert('تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.');
+            } catch(e) { alert('خطأ في الاتصال بالإنترنت!'); }
         }
 
         async function signIn() {
-            if (!supabase) return alert("خطأ: لم يتم الاتصال بقاعدة البيانات.");
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) alert('خطأ في تسجيل الدخول: ' + error.message);
+            if(!email || !password) return alert('الرجاء إدخال البريد وكلمة المرور');
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    alert('خطأ في تسجيل الدخول: ' + (data.error_description || "بيانات غير صحيحة"));
+                } else {
+                    sessionToken = data.access_token;
+                    currentUserId = data.user.id;
+                    authSection.classList.add('hidden');
+                    unlockSection.classList.remove('hidden');
+                    startInactivityTimer();
+                }
+            } catch(e) { alert('خطأ في الاتصال بالإنترنت!'); }
         }
 
-        async function signOut() {
+        function signOut() {
+            sessionToken = null;
+            currentUserId = null;
             sessionMasterPassword = null;
-            await supabase.auth.signOut();
+            authSection.classList.remove('hidden');
+            unlockSection.classList.add('hidden');
+            appSection.classList.add('hidden');
+            clearTimeout(inactivityTimer);
         }
 
         function unlockVault() {
@@ -149,17 +147,13 @@
             fetchVaults();
         }
 
-        function encrypt(text) {
-            return CryptoJS.AES.encrypt(text, sessionMasterPassword).toString();
-        }
+        function encrypt(text) { return CryptoJS.AES.encrypt(text, sessionMasterPassword).toString(); }
 
         function decrypt(ciphertext) {
             try {
                 const bytes = CryptoJS.AES.decrypt(ciphertext, sessionMasterPassword);
                 return bytes.toString(CryptoJS.enc.Utf8) || '⚠️ خطأ في التشفير';
-            } catch (e) {
-                return '⚠️ خطأ في التشفير';
-            }
+            } catch (e) { return '⚠️ خطأ في التشفير'; }
         }
 
         async function addEntry() {
@@ -170,25 +164,38 @@
             
             const encUser = encrypt(user);
             const encPass = encrypt(pass);
-            const { data: { user: authUser } } = await supabase.auth.getUser();
             
-            const { error } = await supabase.from('vaults').insert([{ 
-                user_id: authUser.id, site_name: site, encrypted_username: encUser, encrypted_password: encPass 
-            }]);
-            
-            if (error) alert('خطأ أثناء الحفظ');
-            else {
-                document.getElementById('site-name').value = '';
-                document.getElementById('site-username').value = '';
-                document.getElementById('site-password').value = '';
-                fetchVaults();
-            }
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/vaults`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${sessionToken}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ user_id: currentUserId, site_name: site, encrypted_username: encUser, encrypted_password: encPass })
+                });
+                
+                if (!res.ok) alert('خطأ أثناء الحفظ');
+                else {
+                    document.getElementById('site-name').value = '';
+                    document.getElementById('site-username').value = '';
+                    document.getElementById('site-password').value = '';
+                    fetchVaults();
+                }
+            } catch(e) { alert('خطأ في الاتصال بالإنترنت!'); }
         }
 
         async function fetchVaults() {
-            const { data, error } = await supabase.from('vaults').select('*').order('created_at', { ascending: false });
-            if (error) return console.error(error);
-            renderCards(data);
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/vaults?order=created_at.desc`, {
+                    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${sessionToken}` }
+                });
+                const data = await res.json();
+                if (!res.ok) console.error(data);
+                else renderCards(data);
+            } catch(e) { console.error('فشل جلب البيانات'); }
         }
 
         function renderCards(vaults) {
@@ -233,7 +240,7 @@
             });
         }
 
-        function resetTimer() { if (sessionMasterPassword) { clearTimeout(inactivityTimer); startInactivityTimer(); } }
+        function resetTimer() { if (sessionToken) { clearTimeout(inactivityTimer); startInactivityTimer(); } }
         function startInactivityTimer() { inactivityTimer = setTimeout(() => { alert('تم إغلاق الجلسة لخمول الموقع'); signOut(); }, 300000); }
 
         window.onload = resetTimer;
