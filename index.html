@@ -3,57 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- منع محركات البحث من الأرشفة التزاماً بالخصوصية -->
     <meta name="robots" content="noindex, nofollow">
     <title>My Secure Vault</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- مكتبات خارجية عبر CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- تحميل المكتبات المضمونة -->
+    <script src="[https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2](https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2)"></script>
+    <script src="[https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js](https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js)"></script>
+
+    <!-- التصميم المدمج CSS -->
+    <style>
+        :root { --bg-color: #121212; --surface-color: #1e1e1e; --primary-color: #00adb5; --primary-hover: #00939a; --text-main: #eeeeee; --text-muted: #999999; --danger: #ff4b4b; --border-radius: 8px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .container { background-color: var(--surface-color); padding: 30px; border-radius: var(--border-radius); width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .hidden { display: none !important; }
+        .mt-1 { margin-top: 10px; }
+        h2 { margin-bottom: 20px; text-align: center; }
+        .warning { color: var(--danger); font-size: 0.9em; margin-bottom: 15px; text-align: center; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; background-color: #2a2a2a; border: 1px solid #333; color: var(--text-main); border-radius: var(--border-radius); outline: none; transition: border 0.3s; }
+        input:focus { border-color: var(--primary-color); }
+        button { width: 100%; padding: 12px; background-color: var(--primary-color); color: #fff; border: none; border-radius: var(--border-radius); cursor: pointer; font-weight: bold; transition: background 0.3s; }
+        button:hover { background-color: var(--primary-hover); }
+        button.outline { background-color: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); margin-top: 10px;}
+        button.danger { background-color: var(--danger); color: white; }
+        button.danger.outline { background-color: transparent; border-color: var(--danger); color: var(--danger); }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .add-form { background-color: #2a2a2a; padding: 20px; border-radius: var(--border-radius); margin-bottom: 20px; }
+        .grid { display: flex; flex-direction: column; gap: 15px; }
+        .card { background-color: #2a2a2a; padding: 15px; border-radius: var(--border-radius); border-left: 4px solid var(--primary-color); }
+        .card h3 { margin-bottom: 10px; }
+        .card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.9em; }
+        .card-row span { color: var(--text-muted); }
+        .card-actions { display: flex; gap: 10px; margin-top: 15px; }
+        .card-actions button { padding: 6px; font-size: 0.85em; }
+        @media (max-width: 600px) { .card-actions { flex-direction: column; } }
+    </style>
 </head>
 <body>
 
-    <!-- قسم المصادقة (تسجيل الدخول / إنشاء حساب) -->
+    <!-- الواجهة HTML -->
     <div id="auth-section" class="container">
         <h2>تسجيل الدخول / التسجيل</h2>
         <input type="email" id="email" placeholder="البريد الإلكتروني">
         <input type="password" id="password" placeholder="كلمة المرور">
-        <div class="actions">
-            <button onclick="signIn()">تسجيل الدخول</button>
-            <button class="outline" onclick="signUp()">إنشاء حساب</button>
-        </div>
+        <button onclick="signIn()">تسجيل الدخول</button>
+        <button class="outline" onclick="signUp()">إنشاء حساب</button>
     </div>
 
-    <!-- قسم فك التشفير (Master Password) - يظهر بعد تسجيل الدخول -->
     <div id="unlock-section" class="container hidden">
         <h2>فك تشفير الخزنة</h2>
-        <p class="warning">أدخل كلمة مرور التشفير (Master Password). لن يتم حفظها في أي مكان.</p>
+        <p class="warning">أدخل كلمة مرور التشفير (Master Password).</p>
         <input type="password" id="master-password" placeholder="كلمة مرور التشفير">
         <button onclick="unlockVault()">فتح الخزنة</button>
         <button class="danger outline mt-1" onclick="signOut()">تسجيل الخروج</button>
     </div>
 
-    <!-- قسم التطبيق الرئيسي -->
     <div id="app-section" class="container hidden">
         <header>
             <h2>خزنتي السرية</h2>
             <button class="danger" onclick="signOut()">تسجيل الخروج</button>
         </header>
-
         <div class="add-form">
             <input type="text" id="site-name" placeholder="اسم الموقع (مثال: Google)">
             <input type="text" id="site-username" placeholder="اسم المستخدم">
             <input type="password" id="site-password" placeholder="كلمة المرور">
             <button onclick="addEntry()">إضافة بيانات</button>
         </div>
-
         <input type="text" id="search-bar" placeholder="ابحث عن موقع..." onkeyup="filterCards()">
-
-        <div id="vault-grid" class="grid">
-            <!-- البطاقات ستظهر هنا عبر الجافاسكربت -->
-        </div>
+        <div id="vault-grid" class="grid"></div>
     </div>
 
-    <script src="script.js?v=3"></script>
+    <!-- البرمجة المدمجة JS -->
+    <script>
+        // ضع المفاتيح الخاصة بك هنا بدلاً من النجوم
+        const SUPABASE_URL = 'https://enmtfhfydqdpdwmtrdyq.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_oVGdtrR_S4VjIgeTkfFRgw_tLKNZWY2';
+
+        let supabase = null;
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            alert("⚠️ فشل تحميل مكتبة قاعدة البيانات. تأكد من اتصال الإنترنت.");
+        }
+
+        let sessionMasterPassword = null;
+        let inactivityTimer;
+
+        const authSection = document.getElementById('auth-section');
+        const unlockSection = document.getElementById('unlock-section');
+        const appSection = document.getElementById('app-section');
+
+        if (supabase) {
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (session) {
+                    authSection.classList.add('hidden');
+                    if (!sessionMasterPassword) {
+                        unlockSection.classList.remove('hidden');
+                        appSection.classList.add('hidden');
+                    } else {
+                        unlockSection.classList.add('hidden');
+                        appSection.classList.remove('hidden');
+                        fetchVaults();
+                    }
+                    startInactivityTimer();
+                } else {
+                    authSection.classList.remove('hidden');
+                    unlockSection.classList.add('hidden');
+                    appSection.classList.add('hidden');
+                    sessionMasterPassword = null;
+                    clearTimeout(inactivityTimer);
+                }
+            });
+        }
+
+        async function signUp() {
+            if (!supabase) return alert("خطأ: لم يتم الاتصال بقاعدة البيانات.");
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if(!email || !password) return alert('الرجاء إدخال البريد وكلمة المرور');
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) alert('خطأ في التسجيل: ' + error.message);
+            else alert('تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.');
+        }
+
+        async function signIn() {
+            if (!supabase) return alert("خطأ: لم يتم الاتصال بقاعدة البيانات.");
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert('خطأ في تسجيل الدخول: ' + error.message);
+        }
+
+        async function signOut() {
+            sessionMasterPassword = null;
+            await supabase.auth.signOut();
+        }
+
+        function unlockVault() {
+            const mp = document.getElementById('master-password').value;
+            if (!mp) return alert('الرجاء إدخال كلمة مرور التشفير');
+            sessionMasterPassword = mp;
+            document.getElementById('master-password').value = '';
+            unlockSection.classList.add('hidden');
+            appSection.classList.remove('hidden');
+            fetchVaults();
+        }
+
+        function encrypt(text) {
+            return CryptoJS.AES.encrypt(text, sessionMasterPassword).toString();
+        }
+
+        function decrypt(ciphertext) {
+            try {
+                const bytes = CryptoJS.AES.decrypt(ciphertext, sessionMasterPassword);
+                return bytes.toString(CryptoJS.enc.Utf8) || '⚠️ خطأ في التشفير';
+            } catch (e) {
+                return '⚠️ خطأ في التشفير';
+            }
+        }
+
+        async function addEntry() {
+            const site = document.getElementById('site-name').value;
+            const user = document.getElementById('site-username').value;
+            const pass = document.getElementById('site-password').value;
+            if (!site || !user || !pass) return alert('الرجاء تعبئة جميع الحقول');
+            
+            const encUser = encrypt(user);
+            const encPass = encrypt(pass);
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            
+            const { error } = await supabase.from('vaults').insert([{ 
+                user_id: authUser.id, site_name: site, encrypted_username: encUser, encrypted_password: encPass 
+            }]);
+            
+            if (error) alert('خطأ أثناء الحفظ');
+            else {
+                document.getElementById('site-name').value = '';
+                document.getElementById('site-username').value = '';
+                document.getElementById('site-password').value = '';
+                fetchVaults();
+            }
+        }
+
+        async function fetchVaults() {
+            const { data, error } = await supabase.from('vaults').select('*').order('created_at', { ascending: false });
+            if (error) return console.error(error);
+            renderCards(data);
+        }
+
+        function renderCards(vaults) {
+            const grid = document.getElementById('vault-grid');
+            grid.innerHTML = '';
+            vaults.forEach(item => {
+                const plainUser = decrypt(item.encrypted_username);
+                const plainPass = decrypt(item.encrypted_password);
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.setAttribute('data-site', item.site_name.toLowerCase());
+                card.innerHTML = `
+                    <h3>${item.site_name}</h3>
+                    <div class="card-row"><span>المستخدم:</span><strong id="user-${item.id}">••••••••</strong></div>
+                    <div class="card-row"><span>المرور:</span><strong id="pass-${item.id}">••••••••</strong></div>
+                    <div class="card-actions">
+                        <button class="outline" onclick="toggleVisibility('${item.id}', '${plainUser}', '${plainPass}')">إظهار/إخفاء</button>
+                        <button onclick="copyToClipboard('${plainUser}')">نسخ المستخدم</button>
+                        <button onclick="copyToClipboard('${plainPass}')">نسخ المرور</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function toggleVisibility(id, user, pass) {
+            const userEl = document.getElementById(`user-${id}`);
+            const passEl = document.getElementById(`pass-${id}`);
+            if (userEl.innerText === '••••••••') { userEl.innerText = user; passEl.innerText = pass; }
+            else { userEl.innerText = '••••••••'; passEl.innerText = '••••••••'; }
+        }
+
+        function copyToClipboard(text) {
+            if(text.includes('⚠️')) return alert('بيانات مشفرة خطأ');
+            navigator.clipboard.writeText(text).then(() => alert('تم النسخ!'));
+        }
+
+        function filterCards() {
+            const term = document.getElementById('search-bar').value.toLowerCase();
+            document.querySelectorAll('.card').forEach(card => {
+                card.style.display = card.getAttribute('data-site').includes(term) ? 'block' : 'none';
+            });
+        }
+
+        function resetTimer() { if (sessionMasterPassword) { clearTimeout(inactivityTimer); startInactivityTimer(); } }
+        function startInactivityTimer() { inactivityTimer = setTimeout(() => { alert('تم إغلاق الجلسة لخمول الموقع'); signOut(); }, 300000); }
+
+        window.onload = resetTimer;
+        document.onmousemove = resetTimer;
+        document.onkeypress = resetTimer;
+        document.ontouchstart = resetTimer;
+    </script>
 </body>
 </html>
