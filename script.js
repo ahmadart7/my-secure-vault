@@ -1,18 +1,19 @@
-console.log("✅ ملف الجافاسكريبت يعمل بنجاح ولا يوجد به أخطاء برمجية");
-
 // ==========================================
-// إعدادات SUPABASE
+// إعدادات SUPABASE (لقد وضعت مفاتيحك التي أرسلتها)
 // ==========================================
 const SUPABASE_URL = 'https://enmtfhfydqdpdwmtrdyq.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_oVGdtrR_S4VjIgeTkfFRgw_tLKNZWY2';
 
-// فحص تحميل المكتبة
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-if (!supabase) {
-    console.error("⚠️ لم يتم تحميل مكتبة Supabase. تأكد من اتصال الإنترنت.");
+// ⚠️ حماية ضد انهيار الملف (التأكد من تحميل المكتبة أولاً)
+let supabase = null;
+if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("✅ تم ربط Supabase بنجاح");
+} else {
+    alert("⚠️ فشل تحميل مكتبة Supabase. يرجى التأكد من اتصال الإنترنت أو إيقاف مانع الإعلانات.");
 }
 
-// متغيرات الجلسة
+// متغير الجلسة
 let sessionMasterPassword = null;
 let inactivityTimer;
 
@@ -47,19 +48,20 @@ if (supabase) {
     });
 }
 
+// أصبحت الوظيفة الآن آمنة وسيراها المتصفح حتى لو كان الإنترنت بطيئاً
 async function signUp() {
-    console.log("زر إنشاء الحساب يعمل!");
+    if (!supabase) return alert("لا يمكن التسجيل، لم يتم الاتصال بقاعدة البيانات.");
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    
-    if(!email || !password) return alert('الرجاء إدخال البريد وكلمة المرور');
-    
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) alert('خطأ في التسجيل: ' + error.message);
-    else alert('تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.');
+    else alert('تم التسجيل! يمكنك تسجيل الدخول الآن.');
 }
 
 async function signIn() {
+    if (!supabase) return alert("لا يمكن تسجيل الدخول، لم يتم الاتصال بقاعدة البيانات.");
+
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -72,7 +74,7 @@ async function signOut() {
 }
 
 // ==========================================
-// 2. التشفير وفك التشفير
+// 2. نظام التشفير وفك التشفير (Client-Side)
 // ==========================================
 function unlockVault() {
     const mp = document.getElementById('master-password').value;
@@ -93,14 +95,14 @@ function decrypt(ciphertext) {
     try {
         const bytes = CryptoJS.AES.decrypt(ciphertext, sessionMasterPassword);
         const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-        return decrypted || '⚠️ خطأ';
+        return decrypted || '⚠️ خطأ: المفتاح غير صحيح';
     } catch (e) {
-        return '⚠️ خطأ';
+        return '⚠️ خطأ: تعذر فك التشفير';
     }
 }
 
 // ==========================================
-// 3. إدارة البيانات
+// 3. إدارة البيانات (CRUD)
 // ==========================================
 async function addEntry() {
     const site = document.getElementById('site-name').value;
@@ -171,9 +173,13 @@ function renderCards(vaults) {
     });
 }
 
+// ==========================================
+// 4. وظائف الواجهة (نسخ، إظهار/إخفاء، بحث)
+// ==========================================
 function toggleVisibility(id, user, pass) {
     const userEl = document.getElementById(`user-${id}`);
     const passEl = document.getElementById(`pass-${id}`);
+    
     if (userEl.innerText === '••••••••') {
         userEl.innerText = user;
         passEl.innerText = pass;
@@ -184,7 +190,7 @@ function toggleVisibility(id, user, pass) {
 }
 
 function copyToClipboard(text) {
-    if(text.includes('⚠️')) return alert('بيانات مشفرة بشكل خاطئ');
+    if(text.includes('⚠️')) return alert('لا يمكن النسخ، بيانات مشفرة بشكل خاطئ');
     navigator.clipboard.writeText(text).then(() => {
         alert('تم النسخ إلى الحافظة!');
     });
@@ -199,6 +205,9 @@ function filterCards() {
     });
 }
 
+// ==========================================
+// 5. الأمان الإضافي (Auto-Logout)
+// ==========================================
 function resetTimer() {
     if (sessionMasterPassword) {
         clearTimeout(inactivityTimer);
@@ -208,7 +217,7 @@ function resetTimer() {
 
 function startInactivityTimer() {
     inactivityTimer = setTimeout(() => {
-        alert('تم إغلاق الجلسة بسبب الخمول.');
+        alert('تم إغلاق الجلسة لأسباب أمنية بسبب الخمول.');
         signOut();
     }, 300000); 
 }
